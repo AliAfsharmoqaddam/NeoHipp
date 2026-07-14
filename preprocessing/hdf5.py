@@ -5,17 +5,14 @@ import h5py
 import traceback
 import pandas as pd
 from meld_classifier.tools_commands_prints import get_m
+from meld_classifier.paths import FS_SUBJECTS_PATH, MELD_DATA_PATH, BASE_PATH
 
-#Script for saving features to hdf5 format
-
-#Paths 
-MELD_DATA_PATH = '/home/meldstudent/Documents/RDS_NeoHipp/meld_data'
-BASE_PATH = os.path.join(MELD_DATA_PATH, 'output/preprocessed_surf_data')
-FS_SUBJECTS_PATH = os.path.join(MELD_DATA_PATH, 'output/fs_outputs')
+###
+### Script for saving features to .hdf5 format
+###
 
 #List subjects 
-all_dirs = os.listdir(FS_SUBJECTS_PATH)
-all_subjects = [d for d in all_dirs if d.startswith('MELD')]
+participants = pd.read_csv('/home/meldstudent/Documents/RDS_NeoHipp/final_dataset_h16_fcd.csv').subject_id
 
 #Define depths for each feature 
 feature_list = []
@@ -29,43 +26,45 @@ for d in np.linspace(0, -7, 29):
 for d in [0, -0.5, -1, -1.5, -2, -2.5, -3, -3.5, -4]:
     feature_list.append(f".on_lh.wm_T1_{d}mm.mgh")
 
-#Functions borrowed from MELD classifier 
+###
+### Functions borrowed from MELD classifier 
+###
+
 def import_mgh(filename):
-    """ import mgh file using nibabel. returns flattened data array"""
-    mgh_file=nb.load(filename)
-    mmap_data=mgh_file.get_fdata()
-    array_data=np.ndarray.flatten(mmap_data)
+    mgh_file = nb.load(filename)
+    mmap_data = mgh_file.get_fdata()
+    array_data = np.ndarray.flatten(mmap_data)
     return array_data;
 
 def get_cp(fs_id):
-    cp=fs_id.split('_')[3]
+    cp = fs_id.split('_')[3]
     if cp in ("FCD" , "fcd"):
-        c_p='patient'
+        c_p = 'patient'
     elif cp in ("C" , "c"):
-        c_p='control'
+        c_p = 'control'
     else:
         print('subject '+ fs_id + ' cannot be identified as either patient or control...')
         print('Please double check the IDs in the list of subjects')
-        c_p='false'
+        c_p = 'false'
     return c_p
 
 def get_scanner(fs_id):
-    sc=fs_id.split('_')[2]
+    sc = fs_id.split('_')[2]
     if sc in ("15T" , "1.5T" , "15t" , "1.5t" ):
-        scanner="15T"
+        scanner = "15T"
     elif sc in ("3T" , "3t" ):
-        scanner="3T"
+        scanner = "3T"
     else:
         print('scanner for subject '+ fs_id + ' cannot be identified as either 1.5T or 3T...')
         print('Please double check the IDs in the list of subjects')
-        scanner='false'
+        scanner = 'false'
     return scanner
 
 def get_sitecode(fs_id):
-    site_code=fs_id.split('_')[1]
+    site_code = fs_id.split('_')[1]
     if site_code[0] != 'H':
         print('site code from subject id does not fit format "H<num>". please double check')
-        site_code='false'
+        site_code = 'false'
     return site_code
         
 def create_dataset_file(subjects, output_path):
@@ -76,8 +75,7 @@ def create_dataset_file(subjects, output_path):
     df.to_csv(output_path)
 
 def create_training_data_hdf5(subject, subject_dir, output_dir):
-    # list features
-    features = np.array(feature_list)
+    features = np.array(feature_list) #'feature_list' globally predefined to include all intra/sub-cortical depths
     n_vert = 163842
     cortex_label = nb.freesurfer.io.read_label(os.path.join(subject_dir, 'fsaverage_sym/label/lh.cortex.label'))
     medial_wall = np.delete(np.arange(n_vert), cortex_label)
@@ -151,12 +149,11 @@ def save_subject(fs_id, features, medial_wall, subject_dir, output_dir=None):
 
 #Main function to run
 def main():
-    for subj in all_subjects:
+    for subj in participants:
         site_code = get_sitecode(subj)
         c_p = get_cp(subj)
         print(f"Processing subject: {subj}, site: {site_code}, cp: {c_p}")
         create_training_data_hdf5(subj, FS_SUBJECTS_PATH, BASE_PATH)
-
 
 if __name__ == "__main__":
     main()
