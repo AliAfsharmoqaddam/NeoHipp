@@ -79,6 +79,7 @@ blur_patients = [subj for subj, score in zip(patients, blur_scores) if score < -
 # ---------------------------------------------------------------------------
 # Depth-dependent features
 # ---------------------------------------------------------------------------
+
 distances = [round(0.25 * i, 2) for i in range(29)]
 gm_dist_features = [
     f'.inter_z.asym.intra_z.combat.on_lh.gm_T1_{"-" if d else ""}{d}mm.sm5.mgh'
