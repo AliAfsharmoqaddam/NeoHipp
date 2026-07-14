@@ -9,7 +9,6 @@ from brainspace.null_models import SpinPermutations
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from dominance_analysis import Dominance
-
 from meld_classifier.meld_cohort import MeldCohort, MeldSubject
 
 # ===========================================================================
@@ -19,27 +18,32 @@ fmri_left_data = nb.load('/home/meldstudent/Documents/RDS_NeoHipp/scripts/Files/
 myelin_left_data = nb.load('/home/meldstudent/Documents/RDS_NeoHipp/scripts/Files/myelin_dev_months_new.IBA.lh.func.gii').darrays[0].data
 gene_left_data = nb.load('/home/meldstudent/Documents/RDS_NeoHipp/scripts/Files/spearman_hippocamp_surface.lh.fsaverage_sym.func.gii').darrays[0].data
 
+#Load demographics, atlas, white surface and cohort dataset
 df = pd.read_csv('/home/meldstudent/Documents/RDS_NeoHipp/altered_info5_with_new_name.csv')
 aparc = nb.freesurfer.read_annot('/home/meldstudent/Downloads/lh.HCP-MMP1_sym.annot')
 surf = nb.freesurfer.io.read_geometry('/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/fsaverage_sym/surf/lh.white')
-
-hipp = np.where(aparc[0] == 120)[0]
+DATASET_FILE = pd.read_csv('/home/meldstudent/Documents/RDS_NeoHipp/final_dataset_h16_fcd.csv')
 
 # ===========================================================================
 # Cohort and geodesic distance from hippocampus
 # ===========================================================================
-c = MeldCohort(hdf5_file_root='{site_code}_{group}_featurematrix_combat_final.hdf5')
+c = MeldCohort(hdf5_file_root='{site_code}_{group}_featurematrix_combat_h16_final.hdf5', dataset=DATASET_FILE)
 total_patients = c.get_subject_ids(site_codes=['H1', 'H11', 'H16', 'H29'], group='patient', lesional_only=False)
+
+#Redundant if dataset is passed to MeldCohort
 patients = [x for x in total_patients if 'hs' in x]
 
+#Define medial wall mask 
 mask = c.cortex_mask
 
+#Heat solver for geodesic distance from hippocampus 
 solver = pp3d.MeshHeatMethodDistanceSolver(c.surf['coords'], c.surf['faces'])
+hipp = np.where(aparc[0] == 120)[0]
 geo_d = solver.compute_distance_multisource(hipp)
 geo_d[geo_d < 0] = 0
 
+#Define WM 1mm subcortical feature globally 
 wm_asym_string = '.inter_z.asym.intra_z.combat.on_lh.wm_T1_-1mm.sm5.mgh'
-
 
 # ===========================================================================
 # Patient-averaged WM map
@@ -52,12 +56,10 @@ def subject_hemi(subject):
         return 'rh'
     raise ValueError(f"Unrecognised hemisphere '{hemi}' for {subject}")
 
-
 def patient_mean_full(feature):
     """Per-vertex mean across patients for `feature` (full surface)."""
     vals = [MeldSubject(s, cohort=c).load_feature_values(feature, subject_hemi(s)) for s in patients]
     return np.array(vals).mean(axis=0)
-
 
 wm_full = patient_mean_full(wm_asym_string)   # full surface (for surface plot)
 wm = wm_full[mask]                            # cortex only (for the models)
@@ -71,43 +73,41 @@ df_main = pd.DataFrame({
     'wm': wm,
 })
 
-
 # ===========================================================================
 # Brain surface plots
 # ===========================================================================
 plot_surf(surf[0], surf[1], overlay=wm_full, mask=~c.cortex_mask,
           cmap='seismic_r', cmap_label='WM intensity', vmin=-0.75, vmax=0.75,
-          filename='wm3')
+          filename='wm.png')
 
 plot_surf(surf[0], surf[1], overlay=geo_d, mask=~c.cortex_mask,
           cmap='YlOrRd_r', cmap_label='Distance', vmin=0, vmax=160,
-          filename='distance4.png')
+          filename='distance.png')
 
 plot_surf(surf[0], surf[1], overlay=myelin_left_data, mask=~c.cortex_mask,
           cmap='magma', cmap_label='Myelination', vmin=0, vmax=18,
-          filename='myelination5.png')
+          filename='myelination.png')
 
 plot_surf(surf[0], surf[1], overlay=gene_left_data, mask=~c.cortex_mask,
           cmap='seismic', cmap_label='Gene', vmin=-0.7, vmax=0.7,
-          filename='gene4.png')
+          filename='gene.png')
 
 plot_surf(surf[0], surf[1], overlay=fmri_left_data, mask=~c.cortex_mask,
           cmap='seismic', cmap_label='fMRI', vmin=-0.3, vmax=0.3,
-          filename='fmri4.png')
+          filename='fmri.png')
 
-# Standalone myelin colorbar (positions 0-100 relabelled 0-18 months)
-norm = mpl.colors.Normalize(vmin=0, vmax=100)
-cmap = mpl.cm.get_cmap('magma')
-fig, ax = plt.subplots(figsize=(1, 0.2))
-cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), cax=ax, orientation='horizontal')
-cb.outline.set_linewidth(1)
-cb.set_ticks([0, 100])
-cb.set_ticklabels([0, 18])
-cb.ax.tick_params(length=0, labelsize=12, pad=5)
-cb.set_label('Age at 50% myelination\n(months)', fontsize=12)
-plt.savefig('colorbar_myelin2.svg', bbox_inches='tight', transparent=True)
-plt.show()
-
+### Standalone colorbar generator (e.g. age at 50% myelination colourbar)
+# norm = mpl.colors.Normalize(vmin=0, vmax=100)
+# cmap = mpl.cm.get_cmap('magma')
+# fig, ax = plt.subplots(figsize=(1, 0.2))
+# cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), cax=ax, orientation='horizontal')
+# cb.outline.set_linewidth(1)
+# cb.set_ticks([0, 100])
+# cb.set_ticklabels([0, 18])
+# cb.ax.tick_params(length=0, labelsize=12, pad=5)
+# cb.set_label('Age at 50% myelination\n(months)', fontsize=12)
+# plt.savefig('colorbar_myelin.svg', bbox_inches='tight', transparent=True)
+# plt.show()
 
 # ===========================================================================
 # Dominance analysis (relative importance of each predictor for wm)
@@ -120,7 +120,6 @@ plt.show()
 print(da.dominance_stats())
 print(da.dominance_level())
 
-
 # ===========================================================================
 # Spin test on the full-model R2
 # ---------------------------------------------------------------------------
@@ -128,31 +127,38 @@ print(da.dominance_level())
 # distribution from spin-permuted versions of the wm map. One-sided p-value
 # is the fraction of null R2 >= observed R2.
 # ===========================================================================
+
+#Setup 
 PREDICTORS = ['myelin', 'distance', 'gene', 'fmri']
 DEPENDENT = 'wm'
 N_SPINS = 1000
 RANDOM_SEED = 42
 
+#Load inflated surface and coordinates 
 sphere = nb.freesurfer.read_geometry('/home/meldstudent/Programmes/FreeSurfer7.2.0/freesurfer/subjects/fsaverage_sym/surf/lh.sphere')
 coords = sphere[0][mask]
 
+#Define (in)dependent variables 
 y = df_main[DEPENDENT].values
 X = df_main[PREDICTORS].values
 
-
+#Helper function for R2 calculation 
 def full_model_r2(y_vec, X_mat):
     model = LinearRegression().fit(X_mat, y_vec)
     return r2_score(y_vec, model.predict(X_mat))
 
-
+#Calculate R2
 observed_r2 = full_model_r2(y, X)
 
+#Spin test accounting for spatial autocorrelation 
 sp = SpinPermutations(n_rep=N_SPINS, random_state=RANDOM_SEED)
 sp.fit(coords)
 wm_spun = sp.randomize(y)   # (N_SPINS, n_vertices)
 
+#Build null R2 distribution 
 null_r2 = np.array([full_model_r2(wm_spun[i], X) for i in range(N_SPINS)])
 
+#Calculate p-vals 
 p_value = max(np.mean(null_r2 >= observed_r2), 1.0 / N_SPINS)
 
 print("\nSpin-test results")
@@ -171,7 +177,7 @@ pd.Series({
 }).to_csv('spin_test_results.csv', header=['value'])
 pd.Series(null_r2, name='null_r2').to_csv('null_r2_distribution.csv', index=False)
 
-# Null distribution plot
+# Null distribution histogram plot
 fig, ax = plt.subplots(figsize=(7, 4))
 ax.hist(null_r2, bins=40, color='#4C72B0', alpha=0.75, edgecolor='white', label='Null R² (spins)')
 ax.axvline(observed_r2, color='#DD4949', linewidth=2, label=f'Observed R² = {observed_r2:.4f}')
