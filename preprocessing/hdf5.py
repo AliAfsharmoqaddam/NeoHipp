@@ -107,8 +107,8 @@ def save_subject(fs_id, features, medial_wall, subject_dir, output_dir=None):
     if output_dir is None:
         output_dir = subject_dir
 
-    #Save into seperate hdf5 - NB: '_featurematrix_new.hdf5'
-    hdf5_file = os.path.join(output_dir, site_code + "_" + c_p + "_featurematrix_new.hdf5")
+    #Save into seperate hdf5 - NB: '_featurematrix_h16_new.hdf5'
+    hdf5_file = os.path.join(output_dir, site_code + "_" + c_p + "_featurematrix_h16_new.hdf5")
     if hdf5_file is not None:
         with h5py.File(hdf5_file, "a") as f:
             for h in hemis:
