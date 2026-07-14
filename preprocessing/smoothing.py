@@ -18,9 +18,10 @@ for d in [0, -0.5, -1, -1.5, -2, -2.5, -3, -3.5, -4]:
 #Set size of FWHM kernel 5mm
 FWHM = 5
 
+#Main function with corresponding .hdf5 
 def main():
-    c_raw = MeldCohort(hdf5_file_root="{site_code}_{group}_featurematrix_new.hdf5")
-    smoothing = Preprocess(c_raw, write_hdf5_file_root="{site_code}_{group}_featurematrix_smoothed_new_3.hdf5", data_dir=BASE_PATH)
+    c_raw = MeldCohort(hdf5_file_root="{site_code}_{group}_featurematrix_h16_new.hdf5")
+    smoothing = Preprocess(c_raw, write_hdf5_file_root="{site_code}_{group}_featurematrix_smoothed_h16_new.hdf5", data_dir=BASE_PATH)
 
     for feature in features:
         print(feature)
