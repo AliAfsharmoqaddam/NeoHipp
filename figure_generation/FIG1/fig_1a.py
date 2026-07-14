@@ -1,24 +1,21 @@
 import random
-
 import numpy as np
 import pandas as pd
 import nibabel as nb
 from scipy.stats import ttest_ind
 import statsmodels.stats.multitest as multi
 from matplotlib_surface_plotting import plot_surf
-
 from meld_classifier.meld_cohort import MeldCohort, MeldSubject
 
 # Load demographics
-df_vis = pd.read_csv('/home/meldstudent/Documents/RDS_NeoHipp/altered_info5_with_new_name.csv')
+df = pd.read_csv('/home/meldstudent/Documents/RDS_NeoHipp/altered_info5_with_new_name.csv')
+DATASET_FILE = pd.read_csv('/home/meldstudent/Documents/RDS_NeoHipp/final_dataset_no_fcd.csv') 
 
 # Load white surface
-surf = nb.freesurfer.io.read_geometry(
-    '/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/fsaverage_sym/surf/lh.white'
-)
+surf = nb.freesurfer.io.read_geometry('/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/fsaverage_sym/surf/lh.white')
 
 # Load cohort with corresponding hdf5
-c = MeldCohort(hdf5_file_root='{site_code}_{group}_featurematrix_combat_2.hdf5')
+c = MeldCohort(hdf5_file_root='{site_code}_{group}_featurematrix_combat_2.hdf5', dataset=DATASET_FILE)
 
 # Index location of cortex (used to mask out the medial wall)
 cortex_mask_index = np.where(c.cortex_mask == True)[0]
@@ -27,12 +24,11 @@ cortex_mask_index = np.where(c.cortex_mask == True)[0]
 total_patients = c.get_subject_ids(site_codes=['H1', 'H11', 'H16', 'H29'], group='patient', lesional_only=False)
 controls = c.get_subject_ids(site_codes=['H1', 'H11', 'H16', 'H29'], group='control', lesional_only=False)
 
-# Keep only HS patients
+# Keep only HS patients (redundant if dataset passed to MeldCohort instantiation) 
 patients = [x for x in total_patients if 'hs' in x]
 
-# Define feature globally
+# Define w-g contrast feature globally
 FEATURE = '.inter_z.asym.intra_z.combat.on_lh.w-g.pct.sm10.mgh'
-
 
 def load_group_values(group, feature):
     """Return cortex-masked feature values for every subject in a group.
@@ -51,7 +47,7 @@ def load_group_values(group, feature):
     group_vals = []
     for subject in subjects:
         if group == 'patient':
-            hemi = df_vis[df_vis.classifier_new_id == subject].hemi.to_string(index=False)
+            hemi = df[df.classifier_new_id == subject].hemi.to_string(index=False)
         else:
             hemi = random.choice(['left', 'right'])
 
@@ -74,7 +70,7 @@ control_vals_p = load_group_values('control', FEATURE)
 # Welch's t-test across every cortical vertex at once
 t_test_stats, p_vals = ttest_ind(control_vals_p, patient_vals_p, equal_var=False, axis=0)
 
-# p-value correction
+# p-value correction with Holm-Bonferroni correction 
 p_vals_cor = multi.multipletests(p_vals, method='holm', alpha=0.05)
 
 # Map results back onto the full surface (masking out the medial wall)
