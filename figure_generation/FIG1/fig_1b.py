@@ -1,18 +1,19 @@
 import numpy as np
 import nibabel as nb
 from matplotlib_surface_plotting import plot_surf
-
 from meld_classifier.meld_cohort import MeldCohort
 
 # Load Glasser atlas (symmetric)
-aparc = nb.freesurfer.read_annot('/home/meldstudent/Downloads/lh.HCP-MMP1_sym.annot')
+glasser_atlas = '/home/meldstudent/Downloads/lh.HCP-MMP1_sym.annot'
+aparc = nb.freesurfer.read_annot(glasser_file)
 
 # Load white surface
-surf = nb.freesurfer.io.read_geometry('/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/fsaverage_sym/surf/lh.white')
+white_surf = '/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/fsaverage_sym/surf/lh.white'
+surf = nb.freesurfer.io.read_geometry(white_surf)
 
-# Load cohort (needed only for the cortex mask)
+# Load cohort (only for the cortex mask)
 DATASET_FILE = '/home/meldstudent/Documents/RDS_NeoHipp/final_dataset_no_fcd.csv'
-c = MeldCohort(hdf5_file_root='{site_code}_{group}_featurematrix_combat_final_no_fcd.hdf5', dataset=DATASET_FILE)
+c = MeldCohort(hdf5_file_root='{site_code}_{group}_featurematrix_combat_h16_final.hdf5', dataset=DATASET_FILE)
 
 # Parcellation and its unique regions
 atlas = aparc[0]
@@ -36,4 +37,5 @@ plot_surf(
     parcel_cmap=label_atlas,
     filled_parcels=True,
     colorbar=False,
+    filename='glasser'
 )
