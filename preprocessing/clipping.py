@@ -2,34 +2,7 @@ import os
 import numpy as np
 import json
 from meld_classifier.meld_cohort import MeldCohort, MeldSubject
-from meld_classifier.data_preprocessing import Preprocess, Feature
-from meld_classifier.paths import BASE_PATH, NORM_CONTROLS_PARAMS_FILE, FINAL_SCALING_PARAMS, CLIPPING_PARAMS_FILE
-import time
-
-site_codes = [
-    "H1",
-    "H2",
-    "H3",
-    "H4",
-    "H5",
-    "H6",
-    "H7",
-    "H9",
-    "H10",
-    "H11",
-    "H12",
-    "H14",
-    "H15",
-    "H16",
-    "H17",
-    "H18",
-    "H19",
-    "H21",
-    "H23",
-    "H24",
-    "H26",
-    "H29"
-]
+from meld_classifier.paths import CLIPPING_PARAMS_FILE
 
 #Generate feature lists
 ds_gmfrac_features_to_generate = []
@@ -48,6 +21,7 @@ for h in hemispheres:
     for dwm in [0, -0.5, -1, -1.5, -2, -2.5, -3, -3.5, -4]:
         ds_wm_features_to_generate.append((h, dwm))
 
+#List all features 
 features = []
 for dsf in ds_gmfrac_features_to_generate:
     d = dsf[1]
@@ -68,9 +42,9 @@ for dsf in ds_wm_features_to_generate:
         features.append(feat)
 
 # create cohort to smooth
-cohort= MeldCohort(hdf5_file_root="{site_code}_{group}_featurematrix_new.hdf5")
+cohort = MeldCohort(hdf5_file_root="{site_code}_{group}_featurematrix_new.hdf5")
 
-"""get mean and std of all brain for the given cohort and save parameters"""
+""" get mean and std of all brain for the given cohort and save parameters """
 cohort_ids = cohort.get_subject_ids(group="both")
 
 for feature in features:
@@ -96,10 +70,10 @@ for feature in features:
     print("Compute mean and std from {} subject".format(len(included_subj)))
     # get min and max percentile
     vals_array = np.matrix(vals_array)
-    min_p = np.percentile(vals_array.flatten(),0.1)
+    min_p = np.percentile(vals_array.flatten(), 0.1)
     print(f'min percentile {min_p}')
     print(f'vertices below min : {(vals_array.flatten()<min_p).sum()}')
-    max_p = np.percentile(vals_array.flatten(),99.9)
+    max_p = np.percentile(vals_array.flatten(), 99.9)
     print(f'max percentile {max_p}')
     print(f'vertices above min : {(vals_array.flatten()>max_p).sum()}')
     # save in json
