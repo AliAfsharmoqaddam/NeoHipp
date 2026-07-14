@@ -3,11 +3,12 @@ import numpy as np
 import subprocess
 from subprocess import Popen
 from meld_classifier.tools_commands_prints import get_m
+from meld_classifier.paths import FS_SUBJECTS_PATH
 
 #Function to register individual cortical surface to fsaverage_sym 
 def xhemi_register(subject_id, verbose=False):
     
-    subjects_dir = '/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/'
+    subjects_dir = FS_SUBJECTS_PATH
 
     #Generate feature lists
     ds_gmfrac_features_to_generate = []
@@ -98,11 +99,7 @@ def xhemi_register(subject_id, verbose=False):
                 print(get_m(f'COMMAND failing : {command} with error {stderr}', subject_id, 'ERROR'))
                 return False
 
-subjects_dir = '/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/'
-
 #List all subjects and run function 
-dirs = os.listdir(subjects_dir)
-all_subjects = []
-for subj in dirs:
-    if subj.startswith('MELD'):
-        xhemi_register(subj, verbose=True)
+participants = pd.read_csv('/home/meldstudent/Documents/RDS_NeoHipp/final_dataset_h16_fcd.csv').subject_id
+for subj in participants:
+    xhemi_register(subj, verbose=True)
