@@ -3,11 +3,12 @@ import numpy as np
 import subprocess
 from subprocess import Popen
 from meld_classifier.tools_commands_prints import get_m
+from meld_classifier.paths import FS_SUBJECTS_PATH
 
-#Function for sampling per patient, at various cortical/subcortical depth 
+#Function for sampling per patient, at various intracortical/subcortical depth 
 def sample_T1_features(subject_id, verbose=False):
 
-    subjects_dir = '/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/'
+    subjects_dir = FS_SUBJECTS_PATH
 
     #Generate feature lists
     ds_gmfrac_features_to_generate = []
@@ -77,8 +78,7 @@ def sample_T1_features(subject_id, verbose=False):
                 print(get_m(f'COMMAND failing : {command} with error {stderr}', subject_id, 'ERROR'))
                 return False
 
-#List all subjects and run function 
-dirs = os.listdir('/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/')
-for subj in dirs:
-    if subj.startswith('MELD'):
-        sample_T1_features(subj, verbose=True)
+#List all subjects (including H16 FCD) and run function 
+participants = pd.read_csv('/home/meldstudent/Documents/RDS_NeoHipp/final_dataset_h16_fcd.csv').subject_id
+for subj in participants:
+    sample_T1_features(subj, verbose=True)
