@@ -6,7 +6,6 @@ The pipeline builds on the [MELD classifier](https://github.com/MELDProject/meld
 
 > ⚠️ **Paths and data.** All scripts contain absolute paths from the development environment (e.g. `/home/meldstudent/...`) and expect MELD-format HDF5 feature matrices plus a demographics CSV. Patient data is **not** included in this repository. You will need to edit the paths and provide your own inputs to reproduce the pipeline.
 
-Extended notes: https://app.notion.com/p/G-W-contrast-395d07049f58805ea32ff7763bea886a
 
 ---
 
@@ -32,6 +31,36 @@ NeoHipp/
     │   └── fig_2.py        # onset/duration, correlation matrix, group comparison
     └── FIG3/
         └── fig_3.py        # spatial contextualisation (dominance + spin test)
+```
+
+---
+
+## Data files
+
+Patient MRI is **not** included. To reproduce the figures you need the inputs
+below, split into external reference maps (shareable, or cite with provenance
+and licence) and patient-derived maps (group-level / de-identified, so they can
+be released without raw imaging). A suggested layout under `data/`:
+
+```
+data/
+├── reference maps (external — ship or cite w/ provenance + licence)
+│   ├── lh.HCP-MMP1_sym.annot                              # Glasser sym atlas (ROI 131/172)
+│   ├── fsaverage_sym/lh.white, lh.sphere, lh.sphere.reg   # FreeSurfer surfaces
+│   ├── myelin_dev_months.lh.func.gii                      # FIG3 development map derived from IBA, Chen et al,. 2025
+│   ├── hippo_fmri_connectivity_L.func.gii                 # FIG3 fMRI map, derived from HCP atlas, Glasser et al., 2016
+│   └── gene_expression_hippocampus.lh.func.gii            # FIG3 molecular map, derived from AHBA, Hawrylycz et al., 2015
+│       (geodesic distance is computed in-script; optionally cache
+│        geodesic_distance_hippocampus.lh.npy)
+│
+├── patient-derived (group-level / de-identified — shareable)
+│   ├── patient_avg_wm_blurring.lh.func.gii                # FIG3 averaged WM asym map
+│   ├── group_wg_contrast_ttest.lh.func.gii                # FIG1a t-map + Holm p-map
+│   ├── subject_measures.csv                               # FIG1c/2 + blurred-pt selection:
+│   │                                                      #   id, group, hemi, blurring score,
+│   │                                                      #   onset, duration, histology, hipp asym
+│   └── depth_profiles.csv                                 # FIG1d: id, depth, temporopolar value
+
 ```
 
 ---

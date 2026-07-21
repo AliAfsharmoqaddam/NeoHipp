@@ -2,6 +2,7 @@ import os
 import numpy as np
 import subprocess
 from subprocess import Popen
+import pandas as pd
 from meld_classifier.tools_commands_prints import get_m
 from meld_classifier.paths import FS_SUBJECTS_PATH
 
@@ -31,7 +32,7 @@ def sample_T1_features(subject_id, verbose=False):
     for dsf in ds_gmfrac_features_to_generate:
         hemi = dsf[0]
         d = dsf[1]
-        if not os.path.isfile(f"{subjects_dir}/{subject_id}/surf_meld/{h}.gm_T1_{d}.mgh"):
+        if not os.path.isfile(f"{subjects_dir}/{subject_id}/surf_meld/{hemi}.gm_T1_{d}.mgh"):
             src_path = os.path.join(subjects_dir, subject_id, 'mri/orig.mgz')
             srcreg_path = os.path.join(subjects_dir, subject_id, 'mri/transforms/Identity.dat')
             out_path = os.path.join(subjects_dir, subject_id, f'surf_meld/{hemi}.gm_T1_{d}.mgh')
@@ -48,7 +49,7 @@ def sample_T1_features(subject_id, verbose=False):
     for dsf in ds_gmdist_features_to_generate:
         hemi = dsf[0]
         d = dsf[1]
-        if not os.path.isfile(f"{subjects_dir}/{subject_id}/surf_meld/{h}.gm_T1_{d}mm.mgh"):
+        if not os.path.isfile(f"{subjects_dir}/{subject_id}/surf_meld/{hemi}.gm_T1_{d}mm.mgh"):
             src_path = os.path.join(subjects_dir, subject_id, 'mri/orig.mgz')
             srcreg_path = os.path.join(subjects_dir, subject_id, 'mri/transforms/Identity.dat')
             out_path = os.path.join(subjects_dir, subject_id, f'surf_meld/{hemi}.gm_T1_{d}mm.mgh')
@@ -65,7 +66,7 @@ def sample_T1_features(subject_id, verbose=False):
     for dsf in ds_wm_features_to_generate:
         hemi = dsf[0]
         d = dsf[1]
-        if not os.path.isfile(f"{subjects_dir}/{subject_id}/surf_meld/{h}.wm_T1_{d}mm.mgh"):
+        if not os.path.isfile(f"{subjects_dir}/{subject_id}/surf_meld/{hemi}.wm_T1_{d}mm.mgh"):
             src_path = os.path.join(subjects_dir, subject_id, 'mri/orig.mgz')
             srcreg_path = os.path.join(subjects_dir, subject_id, 'mri/transforms/Identity.dat')
             out_path = os.path.join(subjects_dir, subject_id, f'surf_meld/{hemi}.wm_T1_{d}mm.mgh')

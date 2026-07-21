@@ -5,7 +5,7 @@ from meld_classifier.meld_cohort import MeldCohort
 
 # Load Glasser atlas (symmetric)
 glasser_atlas = '/home/meldstudent/Downloads/lh.HCP-MMP1_sym.annot'
-aparc = nb.freesurfer.read_annot(glasser_file)
+aparc = nb.freesurfer.read_annot(glasser_atlas)
 
 # Load white surface
 white_surf = '/home/meldstudent/Documents/RDS_NeoHipp/meld_data/output/fs_outputs/fsaverage_sym/surf/lh.white'
