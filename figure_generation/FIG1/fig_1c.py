@@ -113,7 +113,7 @@ ax.axvline(x=0, color='grey', linewidth=0.8, linestyle='-', zorder=0)
 p_text = r'$p$ < 0.001' if p_val < 0.001 else rf'$p$ = {p_val:.3f}'
 ax.text(0.98, 
         0.05,
-        rf'$U$ = {stat:.0f}, {p_text}',
+        rf'$U$ = {stat:.0f}, \n{p_text}',
         transform=ax.transAxes,
         fontsize=10,
         ha='right', va='bottom',
