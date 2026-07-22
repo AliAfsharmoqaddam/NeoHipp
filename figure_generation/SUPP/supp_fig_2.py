@@ -169,24 +169,26 @@ for g in groups:
     jitter = rng.uniform(-0.08, 0.0, size=len(values))
     ax.scatter(values, pos - 0.18 + jitter, alpha=0.4, s=6, color=colour, linewidths=0)
 
-# --- Three Mann-Whitney U tests, Bonferroni-corrected ---
+# --- Three Mann-Whitney U tests, Holm-Bonferroni-corrected ---
 # Each entry: (bracket span y1-y2, label y, x offset from x0, test result).
 # The x offsets are hand-tuned - adjust these to nudge bracket levels.
-N_COMP = 3
 comparisons = [
     ((2, 3), 2.5, 0.0, mannwhitneyu(ipsi_tp, contra_tp, alternative='two-sided')),
     ((1, 2), 1.5, 0.6, mannwhitneyu(contra_tp, control_tp, alternative='two-sided')),
     ((1, 3), 2.0, 3.5, mannwhitneyu(ipsi_tp, control_tp, alternative='two-sided')),
 ]
 
+# Holm is step-down: the whole family is adjusted together, in one call.
+p_holm = multi.multipletests([p for _, _, _, (_, p) in comparisons],
+                             method='holm', alpha=ALPHA)[1]
 
-def fmt(u, p):
-    pc = min(p * N_COMP, 1.0)
+
+def fmt(u, pc):
     ps = r'$p$ < 0.001' if pc < 0.001 else rf'$p$ = {pc:.3f}'
     return rf'$U$ = {u:.0f}, {ps}'
 
 
-labels = [fmt(u, p) for _, _, _, (u, p) in comparisons]
+labels = [fmt(u, pc) for (_, _, _, (u, _)), pc in zip(comparisons, p_holm)]
 
 # --- Bracket geometry: measure label width so spacing is tight but clip-free ---
 all_vals = np.concatenate([ipsi_tp, contra_tp, control_tp])
