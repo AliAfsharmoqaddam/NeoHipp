@@ -22,15 +22,15 @@ NeoHipp/
 │   ├── combat_harmonise.py     # ComBat harmonisation across sites
 │   └── normalisation.py        # intra/inter-subject z-scoring + asymmetry
 └── figure_generation/
-    ├── FIG1/               # group-level cortical contrast maps & distributions
+    ├── FIG1/               # group-level cortical contrast maps & distributions (Manuscript figure 2)
     │   ├── fig_1a.py
     │   ├── fig_1b.py
     │   ├── fig_1c.py
     │   └── fig_1d+supp.py
     ├── FIG2/
-    │   └── fig_2.py        # onset/duration, correlation matrix, group comparison
+    │   └── fig_2.py        # onset/duration, correlation matrix, group comparison (Manuscript figure 3)
     └── FIG3/
-        └── fig_3.py        # spatial contextualisation (dominance + spin test)
+        └── fig_3.py        # spatial contextualisation (dominance + spin test) (Manuscript figure 4)
 ```
 
 ---
@@ -50,8 +50,7 @@ data/
 │   ├── myelin_dev_months.lh.func.gii                      # FIG3 development map derived from IBA, Chen et al,. 2025
 │   ├── hippo_fmri_connectivity_L.func.gii                 # FIG3 fMRI map, derived from HCP atlas, Glasser et al., 2016
 │   └── gene_expression_hippocampus.lh.func.gii            # FIG3 molecular map, derived from AHBA, Hawrylycz et al., 2015
-│       (geodesic distance is computed in-script; optionally cache
-│        geodesic_distance_hippocampus.lh.npy)
+│       
 │
 ├── patient-derived (group-level / de-identified — shareable)
 │   ├── patient_avg_wm_blurring.lh.func.gii                # FIG3 averaged WM asym map
