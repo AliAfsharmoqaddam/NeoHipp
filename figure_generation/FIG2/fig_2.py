@@ -99,10 +99,9 @@ else:
 # ===========================================================================
 # Figure: relationships panel (A onset, B duration, C correlation matrix, D group)
 # ===========================================================================
-df1 = df_matrix.copy()
+df1 = df_patients.copy()
 df1["histo_string"] = df1["histo_string"].astype(str)
 
-# Publication style 
 plt.rcParams.update({
     "font.family": "DejaVu Sans", "font.size": 9, "axes.linewidth": 0.8,
     "axes.spines.top": False, "axes.spines.right": False,
@@ -120,7 +119,7 @@ Y_LABEL = "Mean temporopolar blurring score"
 STRIP_H = 0.03          # strip thickness as a fraction of Panel A height (smaller = thinner)
 STRIP_Y = 0.01            # strip vertical position in Panel A axes fraction.
                          #   0.0  = sitting on the plot floor (may cover very low points)
-                         #  -0.14 = floated just below the axis, above the x-ticks
+                         #  -0.14 = floated just BELOW the axis, above the x-ticks
                          #          (uncomment the STRIP_Y line below to use)
 # STRIP_Y = -0.14
 
@@ -140,14 +139,55 @@ def fmt_p(p):
     return "p < 0.0001" if p < 0.0001 else f"p = {p:.4f}"
 
 
+def bonferroni(pvals):
+    """Bonferroni adjustment.
+
+    Returns adjusted p-values in the original input order: each p is multiplied
+    by the family size and capped at 1. NaN inputs stay NaN and are excluded
+    from the family size, so the adjustment only ever counts comparisons that
+    actually had enough data to be run.
+    """
+    pvals = np.asarray(pvals, dtype=float)
+    adj = np.full(pvals.shape, np.nan)
+    valid = ~np.isnan(pvals)
+    m = valid.sum()                                # family size (6 here)
+    adj[valid] = np.minimum(pvals[valid] * m, 1.0)
+    return adj
+
+
 ylim_top = pad_ylim([df1["z_score"]])
 ylim_bottom = ylim_top
+
+# ---- correlation matrix computed ONCE, then Bonferroni-corrected as a family -
+# Each cell uses every patient with data for *that pair* of variables
+# (nan_policy="omit" = pairwise deletion), so no listwise exclusions.
+cols_mat = ["epilepsy_onset", "Duration", "z_score", "hipp_asym"]
+labels_mat = ["Onset", "Duration", "Blurring\nscore", "Hippocampal\nvolume\nasymmetry"]
+n_mat = len(cols_mat)
+
+r_mat = np.full((n_mat, n_mat), np.nan)
+p_raw = np.full((n_mat, n_mat), np.nan)
+for i in range(n_mat):
+    for j in range(i):
+        r, p = stats.spearmanr(df1[cols_mat[i]], df1[cols_mat[j]],
+                               nan_policy="omit")
+        r_mat[i, j] = r
+        p_raw[i, j] = p
+
+# Bonferroni across the 6 lower-triangle comparisons (the whole family)
+tri_i, tri_j = np.tril_indices(n_mat, k=-1)
+p_mat = np.full((n_mat, n_mat), np.nan)
+p_mat[tri_i, tri_j] = bonferroni(p_raw[tri_i, tri_j])
 
 # ---- layout ----------------------------------------------------------------
 fig = plt.figure(figsize=(7, 7.92), facecolor="white")
 outer_gs = gridspec.GridSpec(2, 2, figure=fig, hspace=0.55, wspace=0.10,
                              left=0.11, right=0.97, top=0.90, bottom=0.09)
 
+# Both top cells are split so Panel A keeps its original height. The thin top
+# sub-cell is now just reserved space beneath the legend; the FA strip no longer
+# lives there (it moved to the bottom of Panel A as an inset). Panel B keeps an
+# identical spacer so A and B stay the same height.
 tl_gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer_gs[0, 0],
                                          height_ratios=[1, 16], hspace=0.06)
 tr_gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer_gs[0, 1],
@@ -163,8 +203,10 @@ ax_bl = fig.add_subplot(bottom_gs[0])
 ax_br = fig.add_subplot(bottom_gs[1])
 
 # ---- A: onset vs blurring --------------------------------------------------
-x_on = df1["epilepsy_onset"].dropna().values
-y_on = df1.loc[df1["epilepsy_onset"].notna(), "z_score"].values
+# Pairwise-complete: every patient with BOTH onset and blurring score.
+mask_a = df1["epilepsy_onset"].notna() & df1["z_score"].notna()
+x_on = df1.loc[mask_a, "epilepsy_onset"].values
+y_on = df1.loc[mask_a, "z_score"].values
 
 ax_tl.scatter(x_on, y_on, color=SCATTER_COLOR, alpha=ALPHA, s=DOT_SIZE,
               linewidths=0, zorder=3)
@@ -176,8 +218,9 @@ ax_tl.plot(x_fit, gam.predict(x_fit), color="#C0392B", lw=2, zorder=4)
 ax_tl.fill_between(x_fit, ci[:, 0], ci[:, 1], color="#C0392B", alpha=0.15,
                    zorder=2, linewidth=0)
 
-rho_a, p_a = spearmanr(x_on, y_on)
-print(f"A  onset vs blurring:    rs = {rho_a:.3f}, {fmt_p(p_a * 6)} (Bonferroni x6)")
+# onset vs blurring is cell (2, 0) of the matrix -> use its Bonferroni-adjusted p
+print(f"A  onset vs blurring:    rs = {r_mat[2, 0]:.3f}, "
+      f"{fmt_p(p_mat[2, 0])} (Bonferroni, family of 6)")
 
 ax_tl.set_xlabel("Epilepsy onset (years)", fontsize=11)
 ax_tl.set_ylabel(Y_LABEL, fontsize=11)
@@ -185,9 +228,13 @@ ax_tl.set_ylim(*ylim_top)
 ax_tl.tick_params(axis="x", labelsize=11)
 ax_tl.tick_params(axis="y", labelsize=11)
 ax_tl.set_xticks(range(0, 41, 10))
+# Pin the range: autoscale would go slightly negative and the strip would show
+# a blank sliver below 0.1 y (the charts cannot start at 0 on a log-age model).
 ax_tl.set_xlim(0, np.ceil(x_on.max() / 10) * 10)
 
-# ---- A strip: normative global FA rate, thin band at bottom of Panel A ---
+# ---- A strip: normative global FA rate, thin band at the BOTTOM of Panel A ---
+# Panel x is onset in years, chart x is age in years -> 1:1 mapping. The VALUE
+# is still d(FA)/d(log age): a log-age derivative read off a linear ruler.
 xlo, xhi = ax_tl.get_xlim()
 xs = np.linspace(xlo, xhi, 800)
 rate_i = np.interp(xs, fa_age_src, fa_rate_src, right=np.nan)
@@ -219,8 +266,8 @@ for k in sign_flip:
     t = -fa_rate_src[k] / (fa_rate_src[k + 1] - fa_rate_src[k])
     peak = np.exp(la_all[k] + t * (la_all[k + 1] - la_all[k]))
     if xlo < peak < xhi:
-        #ax_strip.axvline(peak, color="#333", lw=0.8, zorder=6)
-        #ax_tl.axvline(peak, color="#999", lw=0.7, ls=":", zorder=1)
+        # ax_strip.axvline(peak, color="#333", lw=0.8, zorder=6)
+        # ax_tl.axvline(peak, color="#999", lw=0.7, ls=":", zorder=1)
         print(f"   FA strip: median FA peaks at {peak:.2f} y")
 
 # ---- B: duration vs blurring (GAM, same style as A) ------------------------
@@ -238,8 +285,9 @@ ax_tr.plot(x_fit_b, gam_b.predict(x_fit_b), color="#C0392B", lw=2, zorder=4)
 ax_tr.fill_between(x_fit_b, ci_b[:, 0], ci_b[:, 1], color="#C0392B", alpha=0.15,
                    zorder=2, linewidth=0)
 
-rho_b, p_b = spearmanr(x_dur, y_dur)
-print(f"B  duration vs blurring: rs = {rho_b:.3f}, {fmt_p(p_b * 6)} (Bonferroni x6)")
+# duration vs blurring is cell (2, 1) of the matrix -> use its Bonferroni-adjusted p
+print(f"B  duration vs blurring: rs = {r_mat[2, 1]:.3f}, "
+      f"{fmt_p(p_mat[2, 1])} (Bonferroni, family of 6)")
 
 ax_tr.set_xlabel("Epilepsy duration (years)", fontsize=11)
 ax_tr.set_ylabel("")
@@ -249,19 +297,7 @@ ax_tr.tick_params(axis="x", labelsize=11)
 ax_tr.set_xlim(0)
 
 # ---- C: staircase correlation matrix ---------------------------------------
-cols_mat = ["epilepsy_onset", "Duration", "z_score", "hipp_asym"]
-labels_mat = ["Onset", "Duration", "Blurring\nscore", "Hippocampal\nvolume\nasymmetry"]
-n_mat = len(cols_mat)
-
-r_mat = np.full((n_mat, n_mat), np.nan)
-p_mat = np.full((n_mat, n_mat), np.nan)
-for i in range(n_mat):
-    for j in range(i):
-        r, p = stats.spearmanr(df_matrix[cols_mat[i]], df_matrix[cols_mat[j]],
-                               nan_policy="omit")
-        r_mat[i, j] = r
-        p_mat[i, j] = min(p * 6, 1.0)
-
+# r_mat / p_mat were computed above (pairwise data + Bonferroni).
 cmap_mat = plt.cm.Blues
 ax_bl.set_xlim(1, n_mat - 1)
 ax_bl.set_ylim(-0.3, n_mat - 1)
@@ -276,7 +312,7 @@ for i in range(1, n_mat):
         ax_bl.add_patch(plt.Rectangle([x + 0.05, y + 0.05], 0.9, 0.9,
                                       color=cmap_mat(abs_r), zorder=1))
         text_color = "white" if abs_r >= 0.5 else "#042C53"
-        stars = "***" if p < 0.0001 else ("**" if p < 0.001 else ("*" if p < 0.01 else ""))
+        stars = "***" if p < 0.0001 else ("**" if p < 0.001 else ("*" if p < 0.05 else ""))
         r_str = f"{'-' if r < 0 else ''}{abs_r:.3f}"
         p_str = (r"$p_{\mathrm{corr}}$<.001" if p < 0.001
                  else rf"$p_{{\mathrm{{corr}}}}$={p:.3f}")
@@ -345,6 +381,7 @@ ax_br.tick_params(axis="x", length=0, labelsize=11)
 ax_br.tick_params(axis="y", labelsize=11)
 
 # ---- Legend key at the TOP of Panel A, original size -----------------------
+# The label is the colourbar's own TOP label, so nothing can render over it.
 pa = ax_tl.get_position()
 cb_w = pa.width * 0.55
 cb_h = 0.005
